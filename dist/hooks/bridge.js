@@ -1409,6 +1409,16 @@ async function processSessionStart(input) {
     const directory = resolveToWorktreeRoot(input.directory);
     writeSessionStartedMarker(directory, sessionId);
     await reconcileAbandonedSessionStarts(directory, sessionId);
+    // Ensure the local `.omc/` runtime state directory is gitignored so it does
+    // not pollute the repo with untracked files / merge conflicts. Best-effort,
+    // idempotent, and non-destructive (see ensure-gitignore.ts).
+    try {
+        const { ensureOmcGitignored } = await import("../lib/ensure-gitignore.js");
+        ensureOmcGitignored(directory);
+    }
+    catch {
+        // Never block startup on gitignore maintenance.
+    }
     // Lazy-load session-start dependencies
     const { initSilentAutoUpdate } = await import("../features/auto-update.js");
     const { readAutopilotState } = await import("./autopilot/index.js");
